@@ -1,1 +1,162 @@
-Hello World
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1000">
+<title>bshiro</title>
+<!--<link rel="icon" href="/favicon.png">-->
+<!--<link rel="alternate" type="application/rss+xml" title="RSS" href="http://bl.ocks.org/bshiro.rss">-->
+<link rel="stylesheet" type="text/css" href="style.css">
+
+<header>
+    <div class="column">
+        <!--<div class="navigation">
+             <a href="/">Popular</a>
+             / <a href="/-/about">About</a>
+         </div>-->
+         <a class="user self" title="View bshiro on GitHub" href="https://github.com/bshiro"><img
+                 class="avatar" src="https://avatars.githubusercontent.com/u/8772879?v=3&amp;s=60" width="30" height="30">bshiro</a>
+         <!--<div class="date">Updated August 29, 2016</div>-->
+    </div>
+</header>
+
+<div class="column">
+    <a class="user self" title="View bshiro on GitHub" href="https://github.com/bshiro">Repositories</a>
+</div>
+<div class="column repos">
+    <br clear="both">
+    <div class="loading2">Loading repos…</div>
+    <div class="none2" style="display:none;">Sorry, bshiro has no repos. <a href="/">Learn more.</a></div>
+</div>
+<div class="column">
+    <a class="user self" title="View bshiro on GitHub" href="https://gist.github.com/bshiro">Gists</a>
+</div>
+<div class="column gists">
+    <br clear="both">
+    <div class="loading">Loading gists…</div>
+    <div class="none" style="display:none;">Sorry, bshiro has no blocks. <a href="/">Learn more.</a></div>
+</div>
+
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script>
+
+    var formatDate = d3.time.format("%B %-d, %Y"),
+            parseDate = d3.time.format.iso.parse,
+            page = 0,
+            fetching,
+            id;
+    var pageRepos = 0, fetchingRepos;
+
+    // iOS Safari hangs if you try to XMLHttpRequest before loading.
+    if (!document.readyState || document.readyState === "complete") init();
+    else if (/iPad|iPhone|iPod/.test(navigator.userAgent)) d3.select(window).on("load", init);
+    else if (document.readyState === "loading") d3.select(window).on("DOMContentLoaded", init);
+    else setTimeout(maybeFetch, 50);
+
+    function init() {
+        d3.select(window)
+                .on("scroll", maybeFetch)
+                .on("resize", maybeFetch)
+                .each(maybeFetch);
+    }
+
+    function maybeFetch() {
+        if (!fetchingRepos && pageRepos >= 0 && d3.select(".loading2").node().getBoundingClientRect().top < document.documentElement.clientHeight + 100) {
+            ++pageRepos;
+            fetchRepos();
+        }
+        if (!fetching && page >= 0 && d3.select(".loading").node().getBoundingClientRect().top < document.documentElement.clientHeight + 100) {
+            ++page;
+            fetch();
+        }
+    }
+
+    function fetch() {
+        fetching = true;
+        d3.json("https://api.github.com/users/bshiro/gists?page="+ page + "&per_page=10", function(error, gists) {
+            fetching = false;
+            if (gists.length>0) setTimeout(maybeFetch, 50);
+            if (!error) render(gists);
+        });
+    }
+
+    function fetchRepos() {
+        fetchingRepos = true;
+        d3.json("https://api.github.com/users/bshiro/repos?page="+ pageRepos + "&per_page=10", function(error, repos) {
+            fetchingRepos = false;
+            //if (repos.length>0) setTimeout(maybeFetch, 50);
+            if (!error) renderRepos(repos);
+        });
+    }
+
+    function render(gists) {
+
+        if (!gists.length) {
+            d3.select(".loading").remove();
+            if (page < 2) d3.select(".none").style("display", null);
+            page = id = NaN;
+            return;
+        }
+
+        id = gists[gists.length - 1].id;
+
+        gists.forEach(function(d) {
+            d.created_at = parseDate(d.created_at);
+            d.updated_at = parseDate(d.updated_at);
+        });
+
+        d3.select(".gists").selectAll(".gist")
+                .data(gists, function(d) { return d.id; })
+                .enter().insert("a", "br")
+                .attr("class", "gist gist--thumbnail")
+                .attr("href", function(d) { return "http://bl.ocks.org/bshiro/" + d.id; })
+                .style("background-image", function(d) { //console.log((d.files["thumbnail.png"])?d.files["thumbnail.png"].raw_url:"");
+                    return (d.files["thumbnail.png"])?"url("+d.files["thumbnail.png"].raw_url+")":""; })
+                //.style("background-image", "url(https://gist.githubusercontent.com/bshiro/390f93475112fc3d7fc9078eb50be6e9/raw/ca8d7d5c93096f2c0616f6bec75d249574d4300a/thumbnail.png)")
+                .append("div")
+                .attr("class", "gist-description gist-underline")
+                .text(function(d) { return d.description || d.id; });
+
+        d3.select(".gists").selectAll(".gist")
+                .sort(function(a, b) { return b.created_at - a.created_at; });
+    }
+
+    function renderRepos(repos) {
+        for(var i = 0; i < repos.length; i++) {
+            if(repos[i].id == 54087812) {
+                repos.splice(i, 1);
+                break;
+            }
+        }
+        console.log("repos");
+        //d3.select(".loading2").remove();
+        if (!repos.length) {
+            //console.log("remove");
+            d3.select(".loading2").remove();
+            if (page < 2) d3.select(".none2").style("display", null);
+            //page = id = NaN;
+            return;
+        }
+
+        id = repos[repos.length - 1].id;
+
+        repos.forEach(function(d) {
+            d.created_at = parseDate(d.created_at);
+            d.updated_at = parseDate(d.updated_at);
+        });
+
+        d3.select(".repos").selectAll(".gist")
+                .data(repos, function(d) { return d.id; })
+                .enter().insert("a", "br")
+                .attr("class", "gist gist--thumbnail")
+                .attr("href", function(d) { return "http://bshiro.github.io/" + d.name})
+                .style("background-image", function(d) { return "url(https://raw.githubusercontent.com/"+ d.full_name+"/"+ d.default_branch+"/thumbnail.png)"})
+                //.style("background-image", "url(https://gist.githubusercontent.com/bshiro/390f93475112fc3d7fc9078eb50be6e9/raw/ca8d7d5c93096f2c0616f6bec75d249574d4300a/thumbnail.png)")
+                .append("div")
+                .attr("class", "gist-description gist-underline")
+                .text(function(d) { return d.description || d.name; });
+
+        d3.select(".repos").selectAll(".gist")
+                .sort(function(a, b) { return b.created_at - a.created_at; });
+    }
+
+</script>
